@@ -1,0 +1,56 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Shadow / Layered Prescription Sheet Behind -->
+    <path
+        android:fillColor="#33D0BCFF"
+        android:pathData="M 36,20 L 76,20 A 6,6 0 0 1 82,26 L 82,78 A 6,6 0 0 1 76,84 L 36,84 A 6,6 0 0 1 30,78 L 30,26 A 6,6 0 0 1 36,20 Z" />
+
+    <!-- Front Prescription Sheet -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 32,24 L 72,24 A 6,6 0 0 1 78,30 L 78,82 A 6,6 0 0 1 72,88 L 32,88 A 6,6 0 0 1 26,82 L 26,30 A 6,6 0 0 1 32,24 Z" />
+
+    <!-- Stem of R -->
+    <path
+        android:strokeColor="#381E72"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 34,36 L 34,56" />
+
+    <!-- Loop of R -->
+    <path
+        android:strokeColor="#381E72"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 34,36 L 44,36 A 5,5 0 0 1 49,41 L 49,43 A 5,5 0 0 1 44,48 L 34,48" />
+
+    <!-- Leg of R -->
+    <path
+        android:strokeColor="#381E72"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 42,48 L 49,56" />
+
+    <!-- 'x' of Rx -->
+    <path
+        android:strokeColor="#381E72"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 52,46 L 60,54 M 60,46 L 52,54" />
+
+    <!-- Entry lines representing prescription details -->
+    <path
+        android:strokeColor="#BDBDBD"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M 34,64 L 70,64 M 34,71 L 70,71 M 34,78 L 54,78" />
+
+</vector>
