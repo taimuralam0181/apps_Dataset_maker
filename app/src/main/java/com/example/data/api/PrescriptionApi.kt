@@ -1,5 +1,6 @@
 package com.example.data.api
 
+import com.example.BuildConfig
 import com.example.data.models.*
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
@@ -53,7 +54,12 @@ interface PrescriptionApi {
             onUnauthorized: () -> Unit = {}
         ): PrescriptionApi {
             val loggingInterceptor = HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
+                level = if (BuildConfig.DEBUG) {
+                    HttpLoggingInterceptor.Level.BASIC
+                } else {
+                    HttpLoggingInterceptor.Level.NONE
+                }
+                redactHeader("Authorization")
             }
 
             val authInterceptor = okhttp3.Interceptor { chain ->
@@ -69,8 +75,7 @@ interface PrescriptionApi {
                 }
                 
                 if (path.contains("/api/extract")) {
-                    val tokenSnippet = if (token.isNullOrEmpty()) "None" else if (token.length >= 6) token.take(6) + "..." else token
-                    android.util.Log.d("PrescriptionApi", "Calling /api/extract. Token exists: ${!token.isNullOrEmpty()}, First 6 chars: $tokenSnippet")
+                    android.util.Log.d("PrescriptionApi", "Calling /api/extract. Token exists: ${!token.isNullOrEmpty()}")
                 }
                 
                 val finalRequest = requestBuilder.build()

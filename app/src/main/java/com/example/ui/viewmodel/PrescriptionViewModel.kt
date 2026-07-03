@@ -137,7 +137,7 @@ class PrescriptionViewModel(application: Application) : AndroidViewModel(applica
                 _authState.value = AuthState.Success(name, userEmail)
                 loadWorkspaces()
             } catch (e: Exception) {
-                _authState.value = AuthState.Error(e.localizedMessage ?: "Login failed")
+                _authState.value = AuthState.Error(parseAuthError(e, isLogin = true))
             }
         }
     }
@@ -155,7 +155,7 @@ class PrescriptionViewModel(application: Application) : AndroidViewModel(applica
                 _authState.value = AuthState.Success(name, userEmail)
                 loadWorkspaces()
             } catch (e: Exception) {
-                _authState.value = AuthState.Error(e.localizedMessage ?: "Registration failed")
+                _authState.value = AuthState.Error(parseAuthError(e, isLogin = false))
             }
         }
     }
@@ -200,7 +200,7 @@ class PrescriptionViewModel(application: Application) : AndroidViewModel(applica
                 loadWorkspaces()
                 onSuccess()
             } catch (e: Exception) {
-                // Ignore or could show message
+                _workspacesState.value = WorkspacesState.Error(parseNetworkError(e))
             }
         }
     }
@@ -217,7 +217,8 @@ class PrescriptionViewModel(application: Application) : AndroidViewModel(applica
             try {
                 val compressedBytes = compressAndResizeImage(fileBytes)
                 val requestFile = compressedBytes.toRequestBody("image/jpeg".toMediaTypeOrNull(), 0, compressedBytes.size)
-                val body = MultipartBody.Part.createFormData("file", fileName, requestFile)
+                val uploadFileName = toJpegFileName(fileName, "prescription_scan.jpg")
+                val body = MultipartBody.Part.createFormData("file", uploadFileName, requestFile)
                 val response = api.extractImage(body)
                 _extractionState.value = ExtractState.Success(response)
 
@@ -228,7 +229,7 @@ class PrescriptionViewModel(application: Application) : AndroidViewModel(applica
                         ExtractionRecord(
                             workspaceId = null,
                             workspaceName = "Direct Scan",
-                            fileName = fileName,
+                            fileName = uploadFileName,
                             extractedJson = jsonString
                         )
                     )
@@ -252,7 +253,8 @@ class PrescriptionViewModel(application: Application) : AndroidViewModel(applica
             try {
                 val compressedBytes = compressAndResizeImage(fileBytes)
                 val requestFile = compressedBytes.toRequestBody("image/jpeg".toMediaTypeOrNull(), 0, compressedBytes.size)
-                val body = MultipartBody.Part.createFormData("file", fileName, requestFile)
+                val uploadFileName = toJpegFileName(fileName, "workspace_scan.jpg")
+                val body = MultipartBody.Part.createFormData("file", uploadFileName, requestFile)
                 val response = api.uploadWorkspaceImage(workspaceId, body)
                 
                 // Save to local Room history safely
@@ -262,7 +264,7 @@ class PrescriptionViewModel(application: Application) : AndroidViewModel(applica
                         ExtractionRecord(
                             workspaceId = workspaceId,
                             workspaceName = workspaceName,
-                            fileName = fileName,
+                            fileName = uploadFileName,
                             extractedJson = jsonString
                         )
                     )
@@ -297,9 +299,56 @@ class PrescriptionViewModel(application: Application) : AndroidViewModel(applica
             } else {
                 e.message() ?: ""
             }
-            return "status=$code, body=$body"
+            val detail = extractDetailFromErrorBody(body)
+            return when (code) {
+                400 -> detail ?: "Please check your input."
+                401 -> {
+                    logout()
+                    "Session expired. Please login again."
+                }
+                409 -> "Account already exists. Please login instead."
+                500 -> "Server configuration issue. Please try again later."
+                502 -> "AI extraction service is busy. Please try again."
+                else -> detail ?: "Request failed. Status $code."
+            }
         }
         return e.localizedMessage ?: "An unknown network error occurred"
+    }
+
+    private fun parseAuthError(e: Throwable, isLogin: Boolean): String {
+        if (e is retrofit2.HttpException) {
+            val code = e.code()
+            val errorBodyString = try {
+                e.response()?.errorBody()?.string()
+            } catch (ex: Exception) {
+                null
+            }
+            val detail = extractDetailFromErrorBody(errorBodyString)
+            return when (code) {
+                400 -> detail ?: "Please check your input."
+                401 -> if (isLogin) "Invalid email or password." else "Session expired. Please login again."
+                409 -> "Account already exists. Please login instead."
+                500 -> "Server configuration issue. Please try again later."
+                502 -> "AI extraction service is busy. Please try again."
+                else -> detail ?: "Request failed. Status $code."
+            }
+        }
+        return e.localizedMessage ?: if (isLogin) "Login failed" else "Registration failed"
+    }
+
+    private fun extractDetailFromErrorBody(body: String?): String? {
+        if (body.isNullOrBlank()) return null
+        val match = Regex("\"detail\"\\s*:\\s*\"([^\"]+)\"").find(body)
+        return match?.groupValues?.getOrNull(1)
+    }
+
+    private fun toJpegFileName(fileName: String, fallback: String): String {
+        val cleaned = fileName.trim().ifBlank { fallback }
+        return if (cleaned.endsWith(".jpg", true) || cleaned.endsWith(".jpeg", true)) {
+            cleaned
+        } else {
+            "$cleaned.jpg"
+        }
     }
 
     private fun compressAndResizeImage(imageBytes: ByteArray): ByteArray {

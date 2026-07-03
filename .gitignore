@@ -18,5 +18,3 @@ local.properties
 debug.keystore
 debug.keystore.base64
 .build-outputs/
-.env
-.env.example
